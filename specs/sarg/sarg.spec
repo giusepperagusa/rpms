@@ -7,7 +7,7 @@
 Summary: Squid usage report generator per user/ip/name
 Name: sarg
 Version: 2.3.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: GPL
 Group: Applications/Internet
 URL: http://sarg.sourceforge.net/sarg.php
@@ -40,7 +40,16 @@ showing users, IP addresses, bytes, sites and times.
         s|^#(show_successful_message) (.+)$|#$1 $2\n$1 no|;
         s|^#(mail_utility) (.+)$|#$1 $2\n$1 mail|;
         s|^#(external_css_file) (.+)$|#$1 $2\n$1 %{_localstatedir}/www/sarg/sarg.css|;
+        s|^#(exclude_codes) (.+)$|#$1 $2\n$1 %{_sysconfdir}/sarg/exclude_codes|;
     ' sarg.conf
+
+%{__cat} <<'EOF' >sarg.hourly
+#!/bin/bash
+
+exec %{_bindir}/sarg &>/dev/null
+
+exit 0
+EOF
 
 %{__cat} <<'EOF' >sarg.daily
 #!/bin/bash
@@ -163,6 +172,7 @@ EOF
     --disable-rpath \
     --disable-sargphp \
     --enable-extraprotection \
+    --enable-fontdir="%{_sysconfdir}/sarg/fonts" \
     --enable-imagedir="%{_sysconfdir}/sarg/images"
 %{__make} %{?_smp_mflags} CFLAGS="%{optflags}"
 
@@ -174,6 +184,7 @@ EOF
 %{__install} -Dp -m0644 sarg.1 %{buildroot}%{_mandir}/man1/sarg.1
 
 %{__install} -Dp -m0644 sarg-http.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/sarg.conf
+%{__install} -Dp -m0755 sarg.hourly %{buildroot}%{_sysconfdir}/cron.hourly/sarg
 %{__install} -Dp -m0755 sarg.daily %{buildroot}%{_sysconfdir}/cron.daily/sarg
 %{__install} -Dp -m0755 sarg.weekly %{buildroot}%{_sysconfdir}/cron.weekly/sarg
 %{__install} -Dp -m0755 sarg.monthly %{buildroot}%{_sysconfdir}/cron.monthly/sarg
@@ -197,6 +208,7 @@ EOF
 %config %{_sysconfdir}/sarg/exclude_codes
 %config(noreplace) %{_sysconfdir}/sarg/sarg.conf
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/sarg.conf
+%config %{_sysconfdir}/cron.hourly/sarg
 %config %{_sysconfdir}/cron.daily/sarg
 %config %{_sysconfdir}/cron.weekly/sarg
 %config %{_sysconfdir}/cron.monthly/sarg
@@ -207,6 +219,11 @@ EOF
 %{_sysconfdir}/sarg/languages/
 
 %changelog
+* Wed Oct 17 2012 Giuseppe Ragusa <giuseppe.ragusa@hotmail.com> - 2.3.1-2
+- Added actual font dir path option to configure call
+- Added actual exclude codes path to sarg.conf
+- Added hourly cron job to make the ONE-SHOT link work
+
 * Thu Oct 13 2011 Thiago Coutinho <root@thiagoc.net> - 2.3.1-1
 - Updated to version 2.3.1.
 - Fixed cron scripts to support RHEL/CentOS 6.
